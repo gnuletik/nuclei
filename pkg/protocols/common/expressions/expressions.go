@@ -43,9 +43,6 @@ func EvaluateByte(data []byte, base map[string]interface{}) ([]byte, error) {
 }
 
 func evaluate(data string, base map[string]interface{}) (string, error) {
-	// replace simple placeholders (key => value) MarkerOpen + key + MarkerClose and General + key + General to value
-	data = replacer.Replace(data, base)
-
 	// expressions can be:
 	// - simple: containing base values keys (variables)
 	// - complex: containing helper functions [ + variables]
@@ -68,6 +65,12 @@ func evaluate(data string, base map[string]interface{}) (string, error) {
 		// replace incrementally
 		data = replacer.ReplaceOne(data, expression, result)
 	}
+
+	// replace simple placeholders (key => value) MarkerOpen + key + MarkerClose and General + key + General to value
+	// We need to replace placeholders after evaluating expressions
+	// to avoid running expression coming from base values (which are untrusted)
+	data = replacer.Replace(data, base)
+
 	return data, nil
 }
 
