@@ -139,6 +139,9 @@ func (s *session) prepareCommon() {
 
 	s.config.runtime.SetContextValue("executionId", s.config.opts.ExecutionId)
 	s.config.runtime.SetContextValue("ctx", s.config.ctx)
+	// Go calls derive their context from this, so the execution timeout also
+	// cancels a library call in flight instead of leaving it running
+	s.config.runtime.SetContext(s.config.ctx)
 	enableRequire(s.config.runtime)
 }
 
@@ -207,6 +210,7 @@ func (s *session) cleanupCommon() {
 	}
 	s.config.runtime.RemoveContextValue("executionId")
 	s.config.runtime.RemoveContextValue("ctx")
+	s.config.runtime.SetContext(context.TODO())
 }
 
 func (s *session) cleanupPath() {
