@@ -8,6 +8,7 @@ import (
 
 	"github.com/projectdiscovery/nuclei/v3/pkg/protocols/common/protocolstate"
 	"github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9/logging"
 
 	"github.com/praetorian-inc/fingerprintx/pkg/plugins"
 	pluginsredis "github.com/praetorian-inc/fingerprintx/pkg/plugins/services/redis"
@@ -258,9 +259,10 @@ var errReadLimit = fmt.Errorf("redis: reply exceeds %d bytes", maxReadBytes)
 // maxReadBytes.
 func newClient(addr, password string) *redis.Client {
 	opts := &redis.Options{
-		Addr:     addr,
-		Password: password,
-		DB:       0,
+		Addr:          addr,
+		Password:      password,
+		DB:            0,
+		DialerRetries: dialAttempts,
 	}
 	dial := redis.NewDialer(opts)
 	opts.Dialer = func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -290,4 +292,14 @@ func (c *limitedConn) Read(b []byte) (int, error) {
 	n, err := c.Conn.Read(b)
 	c.remaining -= int64(n)
 	return n, err
+}
+
+// dialAttempts replaces go-redis's default of 5. The extra attempts run in a goroutine that
+// ignores the caller's context, so they kept dialing a filtered port for ~25s after the
+// template had given up on it.
+const dialAttempts = 1
+
+func init() {
+	// go-redis logs every failed dial to stderr; the error already reaches the template.
+	logging.Disable()
 }
