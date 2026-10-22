@@ -6,9 +6,9 @@ import (
 	"net"
 	"time"
 
+	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/nuclei/v3/pkg/protocols/common/protocolstate"
 	"github.com/redis/go-redis/v9"
-	"github.com/redis/go-redis/v9/logging"
 
 	"github.com/praetorian-inc/fingerprintx/pkg/plugins"
 	pluginsredis "github.com/praetorian-inc/fingerprintx/pkg/plugins/services/redis"
@@ -300,6 +300,13 @@ func (c *limitedConn) Read(b []byte) (int, error) {
 const dialAttempts = 1
 
 func init() {
-	// go-redis logs every failed dial to stderr; the error already reaches the template.
-	logging.Disable()
+	redis.SetLogger(warningLogger{})
+}
+
+// warningLogger hands go-redis's logs to gologger as warnings. Its default logger writes them
+// straight to stderr, where a failed dial against the scanned host reads as an error.
+type warningLogger struct{}
+
+func (warningLogger) Printf(_ context.Context, format string, v ...interface{}) {
+	gologger.Warning().Msgf(format, v...)
 }
